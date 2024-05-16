@@ -1,12 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RunPostBuildEvent>Always</RunPostBuildEvent>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="config.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
       <Exec Command="call &quot;$(ProjectDir)..\GenerateRegFile.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(TargetFramework)&quot;&#xA;" />

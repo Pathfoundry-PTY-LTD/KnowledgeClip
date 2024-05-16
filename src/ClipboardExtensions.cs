@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
 namespace KnowledgeClip;
-
 public static class ClipboardExtensions
 {
     public static void CopyToClipboard(this string text)

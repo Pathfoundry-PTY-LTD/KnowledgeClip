@@ -1,58 +1,107 @@
-﻿namespace KnowledgeClip;
-
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
-class Program
+namespace KnowledgeClip
 {
-    [STAThread]
-    static void Main(string[] args)
+    static class Program
     {
-        // Check if a directory path is provided
-        if (args.Length != 1)
+        [STAThread]
+        static void Main(string[] args)
         {
-            Console.WriteLine("Usage: KnowledgeClip <directoryPath>");
-            return;
+            // Make sure this application runs as a Windows application without a console window
+            if (!AttachConsole(-1))
+            {
+                FreeConsole();
+            }
+
+            // Run the KnowledgeClip logic
+            RunKnowledgeClip(args);
         }
 
-        string directoryPath = args[0];
-        
-        // Define the file extensions to include
-        string[] extensions = { ".txt", ".cs", ".html" }; // Add or modify extensions as needed
-
-        try
+        private static void RunKnowledgeClip(string[] args)
         {
-            // Verify that the directory exists
-            if (!Directory.Exists(directoryPath))
+            if (args.Length != 1)
             {
-                Console.WriteLine($"The directory '{directoryPath}' does not exist.");
+                ShowMessageBox("Usage: KnowledgeClip <directoryPath>", "Error", 0x00000010);
                 return;
             }
 
-            // Get all files with the specified extensions in the directory and subdirectories
-            var files = Directory.EnumerateFiles(directoryPath, "*.*", SearchOption.AllDirectories)
-                .Where(file => extensions.Contains(Path.GetExtension(file).ToLower()))
-                .ToList();
+            string directoryPath = args[0];
 
-            // Combine the contents of the files into a single string
-            StringBuilder combinedContent = new StringBuilder();
-
-            foreach (var file in files)
+            // Read file extensions from config.json
+            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            if (!File.Exists(configFilePath))
             {
-                combinedContent.AppendLine(File.ReadAllText(file));
+                ShowMessageBox("Configuration file 'config.json' not found.", "Error", 0x00000010);
+                return;
             }
 
-            // Copy the combined content to the clipboard using the extension method
-            combinedContent.ToString().CopyToClipboard();
+            string[]? extensions;
+            try
+            {
+                var config = JObject.Parse(File.ReadAllText(configFilePath));
+                extensions = config["fileExtensions"]?.ToObject<string[]>();
+                if (extensions == null || extensions.Length == 0)
+                {
+                    ShowMessageBox("No file extensions found in configuration file.", "Error", 0x00000010);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox($"Error reading configuration file: {ex.Message}", "Error", 0x00000010);
+                return;
+            }
 
-            Console.WriteLine("The combined content has been copied to the clipboard.");
+            try
+            {
+                // Verify that the directory exists
+                if (!Directory.Exists(directoryPath))
+                {
+                    ShowMessageBox($"The directory '{directoryPath}' does not exist.", "Error", 0x00000010);
+                    return;
+                }
+
+                // Get all files with the specified extensions in the directory and subdirectories
+                var files = Directory.EnumerateFiles(directoryPath, "*.*", SearchOption.AllDirectories)
+                    .Where(file => extensions.Contains(Path.GetExtension(file).ToLower()))
+                    .ToList();
+
+                // Combine the contents of the files into a single string
+                StringBuilder combinedContent = new StringBuilder();
+
+                foreach (var file in files)
+                {
+                    combinedContent.AppendLine(File.ReadAllText(file));
+                }
+
+                // Copy the combined content to the clipboard
+                combinedContent.ToString().CopyToClipboard();
+
+                ShowMessageBox("The combined content has been copied to the clipboard.", "Success", 0x00000040);
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox($"An error occurred: {ex.Message}", "Error", 0x00000010);
+            }
         }
-        catch (Exception ex)
+
+        private static void ShowMessageBox(string text, string caption, uint type)
         {
-            Console.WriteLine($"An error occurred: {ex.Message}");
+            MessageBox(IntPtr.Zero, text, caption, type);
         }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool AttachConsole(int dwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool FreeConsole();
     }
 }
-
