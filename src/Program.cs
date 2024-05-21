@@ -40,7 +40,7 @@ namespace KnowledgeClip
                 return;
             }
 
-            string[]? extensions;
+            string[] extensions;
             try
             {
                 var config = JObject.Parse(File.ReadAllText(configFilePath));
@@ -74,10 +74,15 @@ namespace KnowledgeClip
                 // Combine the contents of the files into a single string
                 StringBuilder combinedContent = new StringBuilder();
 
+                combinedContent.AppendLine("===== START OF FILE DUMPS =====");
                 foreach (var file in files)
                 {
+                    string relativePath = Path.GetRelativePath(directoryPath, file);
+                    combinedContent.AppendLine($"===== START OF FILE: {relativePath} =====");
                     combinedContent.AppendLine(File.ReadAllText(file));
+                    combinedContent.AppendLine($"===== END OF FILE: {relativePath} =====");
                 }
+                combinedContent.AppendLine("===== END OF FILE DUMPS =====");
 
                 // Copy the combined content to the clipboard
                 combinedContent.ToString().CopyToClipboard();
